@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Interactive Optics Lab: Image Formation by Lenses (NCERT Class 10)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b1120;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .active-row-convex {
+      background-color: rgba(16, 185, 129, 0.28) !important;
+      border-left: 4px solid #10b981;
+      font-weight: 700;
+    }
+    .active-row-concave {
+      background-color: rgba(14, 165, 233, 0.28) !important;
+      border-left: 4px solid #0ea5e9;
+      font-weight: 700;
+    }
+    .label-3d {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      transform: translate(-50%, -50%);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      transition: opacity 0.15s ease;
+      z-index: 10;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900/95 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 backdrop-blur">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-extrabold text-slate-950 text-lg">
+          9.3
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              NCERT Class 10 Physics
+            </span>
+            <span class="text-xs text-slate-400">Chapter 9: Light – Reflection &amp; Refraction</span>
+          </div>
+          <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-white">
+            9.3.4 Image Formation by Convex &amp; Concave Lenses (3D Ray Lab)
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-1.5 text-right">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Conceptualized &amp; Created By</div>
+          <div class="text-sm font-bold text-amber-400">Hrishikesh M <span class="text-xs font-medium text-slate-300">(PGT Physics)</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="max-w-7xl w-full mx-auto flex-1 p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- LEFT CONTROL PANEL (4 COLS) -->
+    <section class="lg:col-span-4 flex flex-col gap-4">
+
+      <!-- Lens Type Selector -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <label class="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
+          1. Select Spherical Lens Type
+        </label>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-convex" onclick="setLensType('convex')"
+            class="py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-400">
+            <span>Convex Lens</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-black/25">6 Cases</span>
+          </button>
+          <button id="btn-concave" onclick="setLensType('concave')"
+            class="py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700">
+            <span>Concave Lens</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded bg-black/25">2 Cases</span>
+          </button>
+        </div>
+
+        <!-- Preset NCERT Cases -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400">
+              2. NCERT Textbook Cases
+            </label>
+            <span id="fig-badge" class="text-xs font-semibold text-emerald-400">Fig. 9.16 (a)–(f)</span>
+          </div>
+          <div id="case-buttons-container" class="grid grid-cols-2 gap-2">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Continuous Object Distance Slider -->
+        <div class="mt-4 pt-3 border-t border-slate-800">
+          <div class="flex justify-between items-center text-xs mb-1">
+            <span class="font-semibold text-slate-300">Interactive Object Distance ($u$):</span>
+            <span id="u-readout" class="mono font-bold text-amber-400">u = -30.0 cm</span>
+          </div>
+          <input id="u-slider" type="range" min="4" max="42" step="0.5" value="25"
+            class="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+            oninput="onSliderInput(this.value)" />
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1 mono">
+            <span>At ∞</span>
+            <span>2F₁ (-20cm)</span>
+            <span>F₁ (-10cm)</span>
+            <span>Near O</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ray & Animation Controls -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <label class="text-xs font-bold uppercase tracking-wider text-slate-400">
+            3. Light Rays &amp; Photon Controls
+          </label>
+          <button id="btn-master-rays" onclick="toggleMasterRays()"
+            class="text-xs font-bold px-3 py-1 rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition shadow">
+            Rays: ON
+          </button>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/70 border border-slate-700/70 cursor-pointer">
+            <span class="flex items-center gap-2 font-medium text-slate-200">
+              <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+              Ray 1: Parallel to Principal Axis
+            </span>
+            <input type="checkbox" id="chk-ray1" checked onchange="updateRayVisibility()" class="accent-rose-500 w-4 h-4" />
+          </label>
+
+          <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/70 border border-slate-700/70 cursor-pointer">
+            <span class="flex items-center gap-2 font-medium text-slate-200">
+              <span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+              Ray 2: Passing through Optical Centre $O$
+            </span>
+            <input type="checkbox" id="chk-ray2" checked onchange="updateRayVisibility()" class="accent-amber-400 w-4 h-4" />
+          </label>
+
+          <label class="flex items-center justify-between p-2 rounded-lg bg-slate-800/70 border border-slate-700/70 cursor-pointer">
+            <span class="flex items-center gap-2 font-medium text-slate-200">
+              <span class="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span>
+              Ray 3: Passing through / Directed to Focus
+            </span>
+            <input type="checkbox" id="chk-ray3" onchange="updateRayVisibility()" class="accent-cyan-400 w-4 h-4" />
+          </label>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button id="btn-photons" onclick="togglePhotons()"
+              class="py-2 px-3 rounded-lg font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition">
+              Photon Flow: ON
+            </button>
+            <button id="btn-screen" onclick="toggleScreen3D()"
+              class="py-2 px-3 rounded-lg font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">
+              3D Screen: ON
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Characteristics of Image Formed Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex-1">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-400">
+            4. Image Characteristics (NCERT Data)
+          </h2>
+          <span id="case-title-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-300">
+            Case (b)
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+            <div class="text-[10px] uppercase text-slate-400 font-semibold">Position of Object</div>
+            <div id="info-obj-pos" class="font-bold text-white mt-0.5 text-sm">Beyond 2F₁</div>
+          </div>
+          <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+            <div class="text-[10px] uppercase text-slate-400 font-semibold">Position of Image</div>
+            <div id="info-img-pos" class="font-bold text-emerald-300 mt-0.5 text-sm">Between F₂ and 2F₂</div>
+          </div>
+          <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+            <div class="text-[10px] uppercase text-slate-400 font-semibold">Relative Size of Image</div>
+            <div id="info-img-size" class="font-bold text-amber-300 mt-0.5 text-sm">Diminished</div>
+          </div>
+          <div class="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+            <div class="text-[10px] uppercase text-slate-400 font-semibold">Nature of Image</div>
+            <div id="info-img-nature" class="font-bold text-cyan-300 mt-0.5 text-sm">Real and inverted</div>
+          </div>
+        </div>
+
+        <!-- Live Numerical Lens Formula Box -->
+        <div class="mt-3 pt-3 border-t border-slate-800 text-xs">
+          <div class="text-[11px] font-semibold text-slate-400 mb-1.5 flex justify-between">
+            <span>Lens Formula: <span class="mono text-slate-200">1/v - 1/u = 1/f</span></span>
+            <span>Magnification: <span class="mono text-slate-200">m = v / u</span></span>
+          </div>
+          <div id="live-math-box" class="mono bg-slate-950/90 border border-slate-800 rounded-xl p-2.5 text-[11px] text-slate-300 grid grid-cols-4 gap-1 text-center">
+            <div><span class="text-slate-500 block">f</span><span id="val-f" class="font-bold text-emerald-400">+10 cm</span></div>
+            <div><span class="text-slate-500 block">u</span><span id="val-u" class="font-bold text-amber-400">-25 cm</span></div>
+            <div><span class="text-slate-500 block">v</span><span id="val-v" class="font-bold text-cyan-400">+16.7 cm</span></div>
+            <div><span class="text-slate-500 block">m</span><span id="val-m" class="font-bold text-rose-400">-0.67x</span></div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT 3D VIEWPORT & TABLES (8 COLS) -->
+    <section class="lg:col-span-8 flex flex-col gap-4">
+
+      <!-- 3D Canvas Container -->
+      <div class="relative bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl h-[460px] md:h-[500px]">
+        <!-- Top Canvas Overlay Controls -->
+        <div class="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+          <div class="bg-slate-900/85 backdrop-blur border border-slate-700/80 rounded-xl px-3 py-1.5 pointer-events-auto flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="canvas-status-title" class="text-xs font-bold text-white">
+              Convex Lens — Case (b): Object Beyond 2F₁
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5 pointer-events-auto">
+            <button onclick="setCameraView('front')" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900/85 hover:bg-slate-800 text-slate-200 border border-slate-700 transition">
+              2D Textbook View
+            </button>
+            <button onclick="setCameraView('iso')" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900/85 hover:bg-slate-800 text-emerald-300 border border-slate-700 transition">
+              3D Lab View
+            </button>
+            <button onclick="setCameraView('top')" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900/85 hover:bg-slate-800 text-slate-200 border border-slate-700 transition">
+              Top View
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Legend Overlay -->
+        <div class="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none text-[11px]">
+          <div class="bg-slate-900/85 backdrop-blur border border-slate-800 rounded-lg px-3 py-1 text-slate-300 flex flex-wrap items-center gap-3">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block"></span> Object $AB$</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-fuchsia-400 inline-block"></span> Image $A'B'$</span>
+            <span class="flex items-center gap-1"><span class="w-3 border-t-2 border-dashed border-amber-300 inline-block"></span> Virtual Ray Extension</span>
+          </div>
+          <div class="bg-slate-900/85 backdrop-blur border border-slate-800 rounded-lg px-2.5 py-1 text-slate-400">
+            Drag to Rotate 3D • Scroll to Zoom • Right-Click to Pan
+          </div>
+        </div>
+
+        <!-- 3D HTML Floating Labels Container -->
+        <div id="labels-container" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+
+        <!-- Three.js WebGL Mount -->
+        <div id="three-mount" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+      </div>
+
+      <!-- INTERACTIVE NCERT TABLES (TABLE 9.4 & TABLE 9.5) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 id="table-heading" class="text-sm font-extrabold text-white">
+              Table 9.4: Nature, position and relative size of the image formed by a convex lens
+            </h3>
+            <p class="text-xs text-slate-400">
+              Click any row below to load that exact NCERT ray diagram case in the 3D simulator above.
+            </p>
+          </div>
+          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+            Click Row to Simulate
+          </span>
+        </div>
+
+        <!-- Table 9.4 (Convex Lens) -->
+        <div id="table-convex-wrapper" class="overflow-x-auto rounded-xl border border-emerald-500/30">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-emerald-700 text-white uppercase tracking-wider text-[11px]">
+                <th class="py-2.5 px-3">Case</th>
+                <th class="py-2.5 px-3">Position of the object</th>
+                <th class="py-2.5 px-3">Position of the image</th>
+                <th class="py-2.5 px-3">Relative size of the image</th>
+                <th class="py-2.5 px-3">Nature of the image</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-convex" class="divide-y divide-slate-800 bg-slate-900/90 text-slate-200">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table 9.5 (Concave Lens) -->
+        <div id="table-concave-wrapper" class="hidden overflow-x-auto rounded-xl border border-sky-500/30">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-sky-700 text-white uppercase tracking-wider text-[11px]">
+                <th class="py-2.5 px-3">Case</th>
+                <th class="py-2.5 px-3">Position of the object</th>
+                <th class="py-2.5 px-3">Position of the image</th>
+                <th class="py-2.5 px-3">Relative size of the image</th>
+                <th class="py-2.5 px-3">Nature of the image</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-concave" class="divide-y divide-slate-800 bg-slate-900/90 text-slate-200">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    // ============================================================================
+    // 1. NCERT SYLLABUS DATA (TABLES 9.4 & 9.5 + FIGURES 9.16 & 9.17)
+    // ============================================================================
+    const FOCAL_LENGTH = 10; // 10 units = 10 cm in simulation scale
+    const OBJ_HEIGHT = 4.0;
+
+    const NCERT_DATA = {
+      convex: [
+        {
+          id: 'a',
+          label: 'Case (a): At Infinity',
+          fig: 'Fig. 9.16 (a)',
+          u: -1000, // Represents infinity
+          sliderVal: 42,
+          objPos: 'At infinity',
+          imgPos: 'At focus F₂',
+          imgSize: 'Highly diminished, point-sized',
+          imgNature: 'Real and inverted'
+        },
+        {
+          id: 'b',
+          label: 'Case (b): Beyond 2F₁',
+          fig: 'Fig. 9.16 (b)',
+          u: -25,
+          sliderVal: 25,
+          objPos: 'Beyond 2F₁',
+          imgPos: 'Between F₂ and 2F₂',
+          imgSize: 'Diminished',
+          imgNature: 'Real and inverted'
+        },
+        {
+          id: 'c',
+          label: 'Case (c): At 2F₁',
+          fig: 'Fig. 9.16 (c)',
+          u: -20,
+          sliderVal: 20,
+          objPos: 'At 2F₁',
+          imgPos: 'At 2F₂',
+          imgSize: 'Same size',
+          imgNature: 'Real and inverted'
+        },
+        {
+          id: 'd',
+          label: 'Case (d): Between F₁ & 2F₁',
+          fig: 'Fig. 9.16 (d)',
+          u: -15,
+          sliderVal: 15,
+          objPos: 'Between F₁ and 2F₁',
+          imgPos: 'Beyond 2F₂',
+          imgSize: 'Enlarged',
+          imgNature: 'Real and inverted'
+        },
+        {
+          id: 'e',
+          label: 'Case (e): At Focus F₁',
+          fig: 'Fig. 9.16 (e)',
+          u: -10,
+          sliderVal: 10,
+          objPos: 'At focus F₁',
+          imgPos: 'At infinity',
+          imgSize: 'Infinitely large or highly enlarged',
+          imgNature: 'Real and inverted'
+        },
+        {
+          id: 'f',
+          label: 'Case (f): Between F₁ & O',
+          fig: 'Fig. 9.16 (f)',
+          u: -6,
+          sliderVal: 6,
+          objPos: 'Between focus F₁ and optical centre O',
+          imgPos: 'On the same side of the lens as the object',
+          imgSize: 'Enlarged',
+          imgNature: 'Virtual and erect'
+        }
+      ],
+      concave: [
+        {
+          id: 'a',
+          label: 'Case (a): At Infinity',
+          fig: 'Fig. 9.17 (a)',
+          u: -1000,
+          sliderVal: 42,
+          objPos: 'At infinity',
+          imgPos: 'At focus F₁',
+          imgSize: 'Highly diminished, point-sized',
+          imgNature: 'Virtual and erect'
+        },
+        {
+          id: 'b',
+          label: 'Case (b): Between ∞ & O',
+          fig: 'Fig. 9.17 (b)',
+          u: -18,
+          sliderVal: 18,
+          objPos: 'Between infinity and optical centre O of the lens',
+          imgPos: 'Between focus F₁ and optical centre O',
+          imgSize: 'Diminished',
+          imgNature: 'Virtual and erect'
+        }
+      ]
+    };
+
+    // State Variables
+    let currentLensType = 'convex'; // 'convex' | 'concave'
+    let currentCaseIndex = 1;       // Default Case (b) Beyond 2F1
+    let currentU = -25;             // Object distance u (negative on left)
+    let masterRaysOn = true;
+    let photonsOn = true;
+    let screen3DOn = true;
+
+    // ============================================================================
+    // 2. THREE.JS 3D SCENE SETUP
+    // ============================================================================
+    const mount = document.getElementById('three-mount');
+    const labelsContainer = document.getElementById('labels-container');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x070d19);
+
+    const camera = new THREE.PerspectiveCamera(42, mount.clientWidth / mount.clientHeight, 0.1, 1000);
+    camera.position.set(0, 12, 48);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    mount.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.target.set(0, 0, 0);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight1.position.set(20, 35, 30);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.4);
+    dirLight2.position.set(-25, -15, -20);
+    scene.add(dirLight2);
+
+    // Optical Bench Floor Grid & Principal Axis
+    const gridHelper = new THREE.GridHelper(90, 45, 0x1e293b, 0x0f172a);
+    gridHelper.position.y = -8.5;
+    scene.add(gridHelper);
+
+    // Wooden/Metallic Optical Bench Track below axis
+    const railGeo = new THREE.BoxGeometry(84, 0.5, 2.2);
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4 });
+    const railMesh = new THREE.Mesh(railGeo, railMat);
+    railMesh.position.set(0, -8.2, 0);
+    scene.add(railMesh);
+
+    // Principal Axis (X-axis from -42 to +42)
+    const axisGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-42, 0, 0),
+      new THREE.Vector3(42, 0, 0)
+    ]);
+    const axisMat = new THREE.LineBasicMaterial({ color: 0x94a3b8 });
+    const principalAxis = new THREE.Line(axisGeo, axisMat);
+    scene.add(principalAxis);
+
+    // Vertical Aperture Dashed Line MN inside Lens
+    const mnGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, -7.2, 0),
+      new THREE.Vector3(0, 7.2, 0)
+    ]);
+    const mnMat = new THREE.LineDashedMaterial({ color: 0x64748b, dashSize: 0.4, gapSize: 0.3 });
+    const mnLine = new THREE.Line(mnGeo, mnMat);
+    mnLine.computeLineDistances();
+    scene.add(mnLine);
+
+    // Optical Key Points Markers (2F1, F1, O, F2, 2F2)
+    const markerPositions = [
+      { x: -20, name: '2F₁', sub: 'C₁' },
+      { x: -10, name: 'F₁', sub: '' },
+      { x: 0,   name: 'O',  sub: '' },
+      { x: 10,  name: 'F₂', sub: '' },
+      { x: 20,  name: '2F₂', sub: 'C₂' }
+    ];
+
+    const htmlLabels = [];
+    function createHtmlLabel(text, bgClass, textColorClass) {
+      const div = document.createElement('div');
+      div.className = `label-3d ${bgClass} ${textColorClass} border border-white/15 shadow`;
+      div.innerHTML = text;
+      labelsContainer.appendChild(div);
+      const labelObj = { el: div, pos: new THREE.Vector3(), visible: true };
+      htmlLabels.push(labelObj);
+      return labelObj;
+    }
+
+    markerPositions.forEach(pt => {
+      const sphereGeo = new THREE.SphereGeometry(0.32, 16, 16);
+      const sphereMat = new THREE.MeshBasicMaterial({
+        color: pt.x === 0 ? 0xfbbf24 : 0x38bdf8
+      });
+      const dot = new THREE.Mesh(sphereGeo, sphereMat);
+      dot.position.set(pt.x, 0, 0);
+      scene.add(dot);
+
+      // Small vertical post to optical bench
+      const postGeo = new THREE.CylinderGeometry(0.06, 0.06, 8.2, 8);
+      const postMat = new THREE.MeshBasicMaterial({ color: 0x334155 });
+      const post = new THREE.Mesh(postGeo, postMat);
+      post.position.set(pt.x, -4.1, 0);
+      scene.add(post);
+
+      const labelHtml = pt.sub ? `${pt.name} <span class="text-[9px] opacity-75">(${pt.sub})</span>` : pt.name;
+      const lbl = createHtmlLabel(labelHtml, 'bg-slate-900/90', pt.x === 0 ? 'text-amber-300' : 'text-sky-300');
+      lbl.pos.set(pt.x, -1.1, 0);
+    });
+
+    // Aperture Labels M and N
+    const labelM = createHtmlLabel('M', 'bg-slate-800/80', 'text-slate-300');
+    labelM.pos.set(0, 8.0, 0);
+    const labelN = createHtmlLabel('N', 'bg-slate-800/80', 'text-slate-300');
+    labelN.pos.set(0, -7.8, 0);
+
+    // Dynamic Object & Image Labels (A, B, A', B')
+    const labelA  = createHtmlLabel('A', 'bg-emerald-950/90', 'text-emerald-300');
+    const labelB  = createHtmlLabel('B', 'bg-emerald-950/90', 'text-emerald-300');
+    const labelAp = createHtmlLabel("A'", 'bg-fuchsia-950/90', 'text-fuchsia-300');
+    const labelBp = createHtmlLabel("B'", 'bg-fuchsia-950/90', 'text-fuchsia-300');
+
+    // ============================================================================
+    // 3. PROPERLY ORIENTED 3D GLASS LENSES (NO CONICAL ARTIFACT ON PRINCIPAL AXIS)
+    // ============================================================================
+    const lensGroup = new THREE.Group();
+    scene.add(lensGroup);
+
+    const glassMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x7dd3fc,
+      transparent: true,
+      opacity: 0.42,
+      roughness: 0.08,
+      metalness: 0.05,
+      reflectivity: 0.9,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    const rimMaterial = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      metalness: 0.5,
+      roughness: 0.3
+    });
+
+    function buildProperLensMesh(type) {
+      while (lensGroup.children.length > 0) {
+        lensGroup.remove(lensGroup.children[0]);
+      }
+
+      const R = 7.2; // Lens aperture radius (from O to M/N)
+
+      if (type === 'convex') {
+        // Build a true Biconvex Lens by intersecting/joining two spherical caps or extruding a circular disc with curved faces
+        // Here we construct a custom BufferGeometry where the circular face lies in the YZ-plane (perpendicular to the X principal axis)
+        // and thickness variesalong X as a function of radial distance r = sqrt(y^2 + z^2)
+        const radialSegments = 48;
+        const ringSegments = 24;
+        const maxHalfThickness = 1.15; // At optical centre O (r=0)
+        const edgeHalfThickness = 0.12; // At rim M/N (r=R)
+
+        const geom = new THREE.BufferGeometry();
+        const vertices = [];
+        const indices = [];
+
+        // Generate front (+x) and back (-x) curved surfaces in YZ plane
+        for (let side = -1; side <= 1; side += 2) {
+          for (let i = 0; i <= ringSegments; i++) {
+            const r = (i / ringSegments) * R;
+            const normR = r / R;
+            // Parabolic/spherical lens thickness profile along X-axis
+            const halfX = edgeHalfThickness + (maxHalfThickness - edgeHalfThickness) * (1 - normR * normR);
+            const x = side * halfX;
+
+            for (let j = 0; j <= radialSegments; j++) {
+              const theta = (j / radialSegments) * Math.PI * 2;
+              const y = r * Math.cos(theta);
+              const z = r * Math.sin(theta);
+              vertices.push(x, y, z);
+            }
+          }
+        }
+
+        const stride = radialSegments + 1;
+        const offsetBack = 0;
+        const offsetFront = (ringSegments + 1) * stride;
+
+        // Back surface indices
+        for (let i = 0; i < ringSegments; i++) {
+          for (let j = 0; j < radialSegments; j++) {
+            const a = offsetBack + i * stride + j;
+            const b = offsetBack + (i + 1) * stride + j;
+            const c = offsetBack + (i + 1) * stride + (j + 1);
+            const d = offsetBack + i * stride + (j + 1);
+            indices.push(a, c, b, a, d, c);
+          }
+        }
+        // Front surface indices
+        for (let i = 0; i < ringSegments; i++) {
+          for (let j = 0; j < radialSegments; j++) {
+            const a = offsetFront + i * stride + j;
+            const b = offsetFront + (i + 1) * stride + j;
+            const c = offsetFront + (i + 1) * stride + (j + 1);
+            const d = offsetFront + i * stride + (j + 1);
+            indices.push(a, b, c, a, c, d);
+          }
+        }
+        // Rim stitch
+        const outerBack = offsetBack + ringSegments * stride;
+        const outerFront = offsetFront + ringSegments * stride;
+        for (let j = 0; j < radialSegments; j++) {
+          const a = outerBack + j;
+          const b = outerBack + j + 1;
+          const c = outerFront + j + 1;
+          const d = outerFront + j;
+          indices.push(a, b, c, a, c, d);
+        }
+
+        geom.setIndex(indices);
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geom.computeVertexNormals();
+
+        const mesh = new THREE.Mesh(geom, glassMaterial);
+        lensGroup.add(mesh);
+
+        // Subtle outer circular ring in YZ plane
+        const torusGeo = new THREE.TorusGeometry(R, 0.12, 16, 64);
+        torusGeo.rotateY(Math.PI / 2); // Align torus in YZ plane!
+        const torus = new THREE.Mesh(torusGeo, rimMaterial);
+        lensGroup.add(torus);
+
+      } else {
+        // Biconcave Lens in YZ plane (thin at optical centre O, thicker at rim M/N)
+        const radialSegments = 48;
+        const ringSegments = 24;
+        const centerHalfThickness = 0.22; // Thin center at O
+        const edgeHalfThickness = 1.25;   // Thick rim at M/N
+
+        const geom = new THREE.BufferGeometry();
+        const vertices = [];
+        const indices = [];
+
+        for (let side = -1; side <= 1; side += 2) {
+          for (let i = 0; i <= ringSegments; i++) {
+            const r = (i / ringSegments) * R;
+            const normR = r / R;
+            const halfX = centerHalfThickness + (edgeHalfThickness - centerHalfThickness) * (normR * normR);
+            const x = side * halfX;
+
+            for (let j = 0; j <= radialSegments; j++) {
+              const theta = (j / radialSegments) * Math.PI * 2;
+              const y = r * Math.cos(theta);
+              const z = r * Math.sin(theta);
+              vertices.push(x, y, z);
+            }
+          }
+        }
+
+        const stride = radialSegments + 1;
+        const offsetBack = 0;
+        const offsetFront = (ringSegments + 1) * stride;
+
+        for (let i = 0; i < ringSegments; i++) {
+          for (let j = 0; j < radialSegments; j++) {
+            const a = offsetBack + i * stride + j;
+            const b = offsetBack + (i + 1) * stride + j;
+            const c = offsetBack + (i + 1) * stride + (j + 1);
+            const d = offsetBack + i * stride + (j + 1);
+            indices.push(a, c, b, a, d, c);
+          }
+        }
+        for (let i = 0; i < ringSegments; i++) {
+          for (let j = 0; j < radialSegments; j++) {
+            const a = offsetFront + i * stride + j;
+            const b = offsetFront + (i + 1) * stride + j;
+            const c = offsetFront + (i + 1) * stride + (j + 1);
+            const d = offsetFront + i * stride + (j + 1);
+            indices.push(a, b, c, a, c, d);
+          }
+        }
+        const outerBack = offsetBack + ringSegments * stride;
+        const outerFront = offsetFront + ringSegments * stride;
+        for (let j = 0; j < radialSegments; j++) {
+          const a = outerBack + j;
+          const b = outerBack + j + 1;
+          const c = outerFront + j + 1;
+          const d = outerFront + j;
+          indices.push(a, b, c, a, c, d);
+        }
+
+        geom.setIndex(indices);
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geom.computeVertexNormals();
+
+        const mesh = new THREE.Mesh(geom, glassMaterial);
+        lensGroup.add(mesh);
+
+        // Front & Back circular rims in YZ plane
+        const rimGeo1 = new THREE.TorusGeometry(R, 0.1, 12, 64);
+        rimGeo1.rotateY(Math.PI / 2);
+        const rim1 = new THREE.Mesh(rimGeo1, rimMaterial);
+        rim1.position.x = -edgeHalfThickness;
+        const rim2 = rim1.clone();
+        rim2.position.x = edgeHalfThickness;
+        lensGroup.add(rim1, rim2);
+      }
+
+      // Lens Stand Pillar connecting bottom N to Optical Bench
+      const standGeo = new THREE.CylinderGeometry(0.25, 0.45, 1.2, 16);
+      const standMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.7, roughness: 0.3 });
+      const stand = new THREE.Mesh(standGeo, standMat);
+      stand.position.set(0, -7.8, 0);
+      lensGroup.add(stand);
+    }
+
+    // ============================================================================
+    // 4. 3D OBJECT ARROW (AB), IMAGE ARROW (A'B'), AND PROJECTION SCREEN
+    // ============================================================================
+    function createArrowAssembly(colorHex, isVirtual = false) {
+      const group = new THREE.Group();
+      const mat = new THREE.MeshStandardMaterial({
+        color: colorHex,
+        emissive: colorHex,
+        emissiveIntensity: 0.25,
+        transparent: isVirtual,
+        opacity: isVirtual ? 0.65 : 1.0
+      });
+
+      const shaftGeo = new THREE.CylinderGeometry(0.16, 0.16, 1, 16);
+      shaftGeo.translate(0, 0.5, 0);
+      const shaft = new THREE.Mesh(shaftGeo, mat);
+      shaft.name = 'shaft';
+
+      const headGeo = new THREE.ConeGeometry(0.42, 0.85, 20);
+      headGeo.translate(0, 0.425, 0);
+      const head = new THREE.Mesh(headGeo, mat);
+      head.name = 'head';
+
+      group.add(shaft, head);
+      return group;
+    }
+
+    const objectArrow = createArrowAssembly(0x10b981, false);
+    scene.add(objectArrow);
+
+    const imageArrow = createArrowAssembly(0xe879f9, false);
+    scene.add(imageArrow);
+
+    // 3D White Translucent Projection Screen for Real Images
+    const screenGroup = new THREE.Group();
+    const screenBoardGeo = new THREE.BoxGeometry(0.15, 11, 7);
+    const screenBoardMat = new THREE.MeshStandardMaterial({
+      color: 0xf8fafc,
+      transparent: true,
+      opacity: 0.22,
+      roughness: 0.8
+    });
+    const screenBoard = new THREE.Mesh(screenBoardGeo, screenBoardMat);
+    const screenFrame = new THREE.LineSegments(
+      new THREE.EdgesGeometry(screenBoardGeo),
+      new THREE.LineBasicMaterial({ color: 0x64748b })
+    );
+    screenGroup.add(screenBoard, screenFrame);
+    scene.add(screenGroup);
+
+    function setArrowDimensions(arrowGroup, xPos, height, isVirtual) {
+      if (!isFinite(height) || Math.abs(height) < 0.05) {
+        arrowGroup.visible = false;
+        return;
+      }
+      arrowGroup.visible = true;
+      arrowGroup.position.set(xPos, 0, 0);
+
+      const sign = height >= 0 ? 1 : -1;
+      const absH = Math.min(Math.abs(height), 14);
+      const headH = Math.min(0.85, absH * 0.35);
+      const shaftH = Math.max(0.05, absH - headH);
+
+      const shaft = arrowGroup.getObjectByName('shaft');
+      const head = arrowGroup.getObjectByName('head');
+
+      shaft.scale.set(1, sign * shaftH, 1);
+      head.scale.set(1, sign * (headH / 0.85), 1);
+      head.position.y = sign * shaftH;
+
+      shaft.material.transparent = isVirtual;
+      shaft.material.opacity = isVirtual ? 0.6 : 1.0;
+      head.material.transparent = isVirtual;
+      head.material.opacity = isVirtual ? 0.6 : 1.0;
+    }
+
+    // ============================================================================
+    // 5. DYNAMIC RAY LINES & ANIMATED PHOTONS
+    // ============================================================================
+    const raysGroup = new THREE.Group();
+    scene.add(raysGroup);
+
+    const photonsGroup = new THREE.Group();
+    scene.add(photonsGroup);
+
+    // Stores active ray paths for animated photon particles
+    let activePhotonPaths = [];
+
+    function addSolidRay(points, colorHex) {
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineBasicMaterial({ color: colorHex, linewidth: 2 });
+      const line = new THREE.Line(geo, mat);
+      raysGroup.add(line);
+
+      // Add directional arrowhead cone at midpoint of each segment
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const dir = new THREE.Vector3().subVectors(p2, p1);
+        const len = dir.length();
+        if (len > 2.5) {
+          dir.normalize();
+          const mid = new THREE.Vector3().lerpVectors(p1, p2, 0.55);
+          const coneGeo = new THREE.ConeGeometry(0.24, 0.65, 12);
+          coneGeo.rotateX(Math.PI / 2);
+          const coneMat = new THREE.MeshBasicMaterial({ color: colorHex });
+          const cone = new THREE.Mesh(coneGeo, coneMat);
+          cone.position.copy(mid);
+          cone.lookAt(p2);
+          raysGroup.add(cone);
+        }
+      }
+
+      activePhotonPaths.push({ points, colorHex });
+    }
+
+    function addDashedVirtualRay(points, colorHex) {
+      const geo = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineDashedMaterial({
+        color: colorHex,
+        dashSize: 0.55,
+        gapSize: 0.35,
+        transparent: true,
+        opacity: 0.85
+      });
+      const line = new THREE.Line(geo, mat);
+      line.computeLineDistances();
+      raysGroup.add(line);
+    }
+
+    // Create pool of photon spheres
+    const PHOTON_POOL_SIZE = 48;
+    const photonMeshes = [];
+    const photonSphereGeo = new THREE.SphereGeometry(0.2, 12, 12);
+    for (let i = 0; i < PHOTON_POOL_SIZE; i++) {
+      const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const mesh = new THREE.Mesh(photonSphereGeo, mat);
+      mesh.visible = false;
+      photonsGroup.add(mesh);
+      photonMeshes.push(mesh);
+    }
+
+    // ============================================================================
+    // 6. CORE PHYSICS ENGINE (EXACT THIN LENS EQUATIONS & NCERT RAY RULES)
+    // ============================================================================
+    function rebuildOpticsScene() {
+      // Clear previous rays
+      while (raysGroup.children.length > 0) {
+        raysGroup.remove(raysGroup.children[0]);
+      }
+      activePhotonPaths = [];
+
+      const showRay1 = document.getElementById('chk-ray1').checked;
+      const showRay2 = document.getElementById('chk-ray2').checked;
+      const showRay3 = document.getElementById('chk-ray3').checked;
+
+      const isConvex = currentLensType === 'convex';
+      const f = isConvex ? FOCAL_LENGTH : -FOCAL_LENGTH; // +10 for Convex, -10 for Concave
+      const u = currentU; // Negative value
+      const isInfinity = u <= -500;
+
+      // Update Live Math Readouts
+      document.getElementById('val-f').textContent = (f > 0 ? '+' : '') + f.toFixed(0) + ' cm';
+
+      if (isInfinity) {
+        // ================== CASE (a): OBJECT AT INFINITY ==================
+        objectArrow.visible = false;
+        labelA.visible = false;
+        labelB.visible = false;
+
+        const v = f; // Image forms at F2 (+10) for convex, F1 (-10) for concave
+        document.getElementById('val-u').textContent = '∞';
+        document.getElementById('val-v').textContent = (v > 0 ? '+' : '') + v.toFixed(1) + ' cm';
+        document.getElementById('val-m').textContent = '≈ 0.00';
+
+        // Point-sized image dot at focus
+        imageArrow.visible = false;
+        labelAp.visible = false;
+        labelBp.visible = false;
+
+        // Screen at F2 for real point image in convex lens
+        if (isConvex && screen3DOn) {
+          screenGroup.visible = true;
+          screenGroup.position.set(FOCAL_LENGTH, 0, 0);
+        } else {
+          screenGroup.visible = false;
+        }
+
+        if (masterRaysOn) {
+          // Parallel beams from infinity hitting lens at heights y = +4.5, +2.2, -2.2, -4.5
+          const heights = [4.5, 2.2, -2.2, -4.5];
+          heights.forEach((h, idx) => {
+            const color = idx % 2 === 0 ? 0xf43f5e : 0x38bdf8;
+            if (isConvex) {
+              // Converges through F2 (10, 0, 0)
+              const pStart = new THREE.Vector3(-40, h, 0);
+              const pLens  = new THREE.Vector3(0, h, 0);
+              const pFocus = new THREE.Vector3(FOCAL_LENGTH, 0, 0);
+              const dir = new THREE.Vector3().subVectors(pFocus, pLens).normalize();
+              const pEnd = new THREE.Vector3().copy(pLens).addScaledVector(dir, 22);
+              addSolidRay([pStart, pLens, pEnd], color);
+            } else {
+              // Diverges as if coming from F1 (-10, 0, 0)
+              const pStart = new THREE.Vector3(-40, h, 0);
+              const pLens  = new THREE.Vector3(0, h, 0);
+              const pF1    = new THREE.Vector3(-FOCAL_LENGTH, 0, 0);
+              const dir = new THREE.Vector3().subVectors(pLens, pF1).normalize();
+              const pEnd = new THREE.Vector3().copy(pLens).addScaledVector(dir, 22);
+              addSolidRay([pStart, pLens, pEnd], color);
+              addDashedVirtualRay([pF1, pLens], 0xfbbf24);
+            }
+          });
+        }
+        return;
+      }
+
+      // ================== FINITE OBJECT DISTANCE u ==================
+      setArrowDimensions(objectArrow, u, OBJ_HEIGHT, false);
+      labelA.visible = true;
+      labelB.visible = true;
+      labelA.pos.set(u, OBJ_HEIGHT + 0.8, 0);
+      labelB.pos.set(u, -0.8, 0);
+
+      document.getElementById('val-u').textContent = u.toFixed(1) + ' cm';
+
+      const pTip = new THREE.Vector3(u, OBJ_HEIGHT, 0);
+      const pLensParallel = new THREE.Vector3(0, OBJ_HEIGHT, 0);
+      const pCenterO = new THREE.Vector3(0, 0, 0);
+
+      // Check if object is at Focus F1 of Convex Lens (u = -10)
+      if (isConvex && Math.abs(u + FOCAL_LENGTH) < 0.15) {
+        document.getElementById('val-v').textContent = '∞';
+        document.getElementById('val-m').textContent = '∞';
+
+        imageArrow.visible = false;
+        labelAp.visible = false;
+        labelBp.visible = false;
+        screenGroup.visible = false;
+
+        if (masterRaysOn) {
+          // Ray 1: Parallel to axis -> through F2 (10, 0, 0)
+          const pF2 = new THREE.Vector3(FOCAL_LENGTH, 0, 0);
+          const dirPar = new THREE.Vector3().subVectors(pF2, pLensParallel).normalize();
+          if (showRay1) {
+            const pEnd1 = new THREE.Vector3().copy(pLensParallel).addScaledVector(dirPar, 32);
+            addSolidRay([pTip, pLensParallel, pEnd1], 0xf43f5e);
+          }
+          // Ray 2: Through O -> parallel to Ray 1!
+          if (showRay2) {
+            const pEnd2 = new THREE.Vector3().copy(pCenterO).addScaledVector(dirPar, 32);
+            addSolidRay([pTip, pCenterO, pEnd2], 0xfbbf24);
+          }
+        }
+        return;
+      }
+
+      // Thin Lens Formula: 1/v = 1/f + 1/u
+      const v = (f * u) / (u + f);
+      const m = v / u;
+      const imgH = m * OBJ_HEIGHT;
+      const isVirtual = v < 0;
+
+      document.getElementById('val-v').textContent = (v > 0 ? '+' : '') + v.toFixed(1) + ' cm';
+      document.getElementById('val-m').textContent = (m > 0 ? '+' : '') + m.toFixed(2) + 'x';
+
+      // Position Image Arrow A'B'
+      setArrowDimensions(imageArrow, v, imgH, isVirtual);
+      labelAp.visible = true;
+      labelBp.visible = true;
+      labelAp.pos.set(v, imgH + (imgH >= 0 ? 0.8 : -0.8), 0);
+      labelBp.pos.set(v, imgH >= 0 ? -0.8 : 0.8, 0);
+
+      // Position 3D Screen for Real Images
+      if (!isVirtual && screen3DOn && v <= 42) {
+        screenGroup.visible = true;
+        screenGroup.position.set(v, 0, 0);
+      } else {
+        screenGroup.visible = false;
+      }
+
+      const pImgTip = new THREE.Vector3(v, imgH, 0);
+
+      if (!masterRaysOn) return;
+
+      if (isConvex) {
+        const pF2 = new THREE.Vector3(FOCAL_LENGTH, 0, 0);
+        const pF1 = new THREE.Vector3(-FOCAL_LENGTH, 0, 0);
+
+        // RAY 1: Parallel to principal axis -> refracts through F2
+        if (showRay1) {
+          if (!isVirtual) {
+            const dir1 = new THREE.Vector3().subVectors(pImgTip, pLensParallel).normalize();
+            const pEnd1 = new THREE.Vector3().copy(pImgTip).addScaledVector(dir1, 6);
+            addSolidRay([pTip, pLensParallel, pEnd1], 0xf43f5e);
+          } else {
+            // Virtual image (Case f: between F1 & O)
+            const dir1 = new THREE.Vector3().subVectors(pF2, pLensParallel).normalize();
+            const pEnd1 = new THREE.Vector3().copy(pLensParallel).addScaledVector(dir1, 24);
+            addSolidRay([pTip, pLensParallel, pEnd1], 0xf43f5e);
+            addDashedVirtualRay([pImgTip, pLensParallel], 0xf43f5e);
+          }
+        }
+
+        // RAY 2: Through Optical Centre O undeviated
+        if (showRay2) {
+          if (!isVirtual) {
+            const dir2 = new THREE.Vector3().subVectors(pImgTip, pCenterO).normalize();
+            const pEnd2 = new THREE.Vector3().copy(pImgTip).addScaledVector(dir2, 6);
+            addSolidRay([pTip, pCenterO, pEnd2], 0xfbbf24);
+          } else {
+            const dir2 = new THREE.Vector3().subVectors(pCenterO, pTip).normalize();
+            const pEnd2 = new THREE.Vector3().copy(pCenterO).addScaledVector(dir2, 24);
+            addSolidRay([pTip, pCenterO, pEnd2], 0xfbbf24);
+            addDashedVirtualRay([pImgTip, pTip], 0xfbbf24);
+          }
+        }
+
+        // RAY 3: Passing through F1 -> emerges parallel to principal axis
+        if (showRay3) {
+          const pLens3 = new THREE.Vector3(0, imgH, 0);
+          if (Math.abs(imgH) <= 7.0) {
+            if (!isVirtual) {
+              const pEnd3 = new THREE.Vector3(v + 6, imgH, 0);
+              addSolidRay([pTip, pLens3, pEnd3], 0x22d3ee);
+            } else {
+              const pEnd3 = new THREE.Vector3(24, imgH, 0);
+              addSolidRay([pTip, pLens3, pEnd3], 0x22d3ee);
+              addDashedVirtualRay([pF1, pTip], 0x22d3ee);
+              addDashedVirtualRay([pImgTip, pLens3], 0x22d3ee);
+            }
+          }
+        }
+
+      } else {
+        // ================== CONCAVE LENS FINITE OBJECT (CASE b) ==================
+        const pF1 = new THREE.Vector3(-FOCAL_LENGTH, 0, 0);
+        const pF2 = new THREE.Vector3(FOCAL_LENGTH, 0, 0);
+
+        // RAY 1: Parallel to principal axis -> diverges as if coming from F1
+        if (showRay1) {
+          const dir1 = new THREE.Vector3().subVectors(pLensParallel, pF1).normalize();
+          const pEnd1 = new THREE.Vector3().copy(pLensParallel).addScaledVector(dir1, 24);
+          addSolidRay([pTip, pLensParallel, pEnd1], 0xf43f5e);
+          addDashedVirtualRay([pF1, pLensParallel], 0xf43f5e);
+        }
+
+        // RAY 2: Through Optical Centre O undeviated
+        if (showRay2) {
+          const dir2 = new THREE.Vector3().subVectors(pCenterO, pTip).normalize();
+          const pEnd2 = new THREE.Vector3().copy(pCenterO).addScaledVector(dir2, 24);
+          addSolidRay([pTip, pCenterO, pEnd2], 0xfbbf24);
+        }
+
+        // RAY 3: Directed towards F2 -> emerges parallel to principal axis
+        if (showRay3) {
+          const pLens3 = new THREE.Vector3(0, imgH, 0);
+          const pEnd3 = new THREE.Vector3(24, imgH, 0);
+          addSolidRay([pTip, pLens3, pEnd3], 0x22d3ee);
+          addDashedVirtualRay([pImgTip, pLens3], 0x22d3ee);
+          addDashedVirtualRay([pLens3, pF2], 0x22d3ee);
+        }
+      }
+    }
+
+    // ============================================================================
+    // 7. UI & TABLE SYNCHRONIZATION
+    // ============================================================================
+    function buildTablesAndCaseButtons() {
+      // Populate Convex Table 9.4
+      const tbodyConvex = document.getElementById('tbody-convex');
+      tbodyConvex.innerHTML = '';
+      NCERT_DATA.convex.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.id = `row-convex-${idx}`;
+        tr.className = 'cursor-pointer hover:bg-slate-800/80 transition';
+        tr.onclick = () => selectCase(idx);
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-bold text-emerald-400">(${item.id})</td>
+          <td class="py-2.5 px-3 font-medium">${item.objPos}</td>
+          <td class="py-2.5 px-3">${item.imgPos}</td>
+          <td class="py-2.5 px-3">${item.imgSize}</td>
+          <td class="py-2.5 px-3">${item.imgNature}</td>
+        `;
+        tbodyConvex.appendChild(tr);
+      });
+
+      // Populate Concave Table 9.5
+      const tbodyConcave = document.getElementById('tbody-concave');
+      tbodyConcave.innerHTML = '';
+      NCERT_DATA.concave.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.id = `row-concave-${idx}`;
+        tr.className = 'cursor-pointer hover:bg-slate-800/80 transition';
+        tr.onclick = () => selectCase(idx);
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-bold text-sky-400">(${item.id})</td>
+          <td class="py-2.5 px-3 font-medium">${item.objPos}</td>
+          <td class="py-2.5 px-3">${item.imgPos}</td>
+          <td class="py-2.5 px-3">${item.imgSize}</td>
+          <td class="py-2.5 px-3">${item.imgNature}</td>
+        `;
+        tbodyConcave.appendChild(tr);
+      });
+    }
+
+    function renderCaseButtons() {
+      const container = document.getElementById('case-buttons-container');
+      container.innerHTML = '';
+      const cases = NCERT_DATA[currentLensType];
+
+      cases.forEach((c, idx) => {
+        const isActive = idx === currentCaseIndex;
+        const activeClasses = currentLensType === 'convex'
+          ? 'bg-emerald-500/25 border-emerald-400 text-emerald-200 shadow'
+          : 'bg-sky-500/25 border-sky-400 text-sky-200 shadow';
+        const defaultClasses = 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800';
+
+        const btn = document.createElement('button');
+        btn.className = `py-2 px-2.5 rounded-xl border text-left text-xs font-semibold transition ${isActive ? activeClasses : defaultClasses}`;
+        btn.onclick = () => selectCase(idx);
+        btn.innerHTML = `
+          <div class="text-[10px] opacity-75">${c.fig}</div>
+          <div class="truncate font-bold">${c.label}</div>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function setLensType(type) {
+      currentLensType = type;
+      currentCaseIndex = type === 'convex' ? 1 : 1; // Default to finite object Case (b)
+
+      // Update Lens Toggle Buttons
+      const btnConvex = document.getElementById('btn-convex');
+      const btnConcave = document.getElementById('btn-concave');
+
+      if (type === 'convex') {
+        btnConvex.className = 'py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border border-emerald-400';
+        btnConcave.className = 'py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700';
+        document.getElementById('fig-badge').textContent = 'Fig. 9.16 (a)–(f)';
+        document.getElementById('table-heading').textContent = 'Table 9.4: Nature, position and relative size of the image formed by a convex lens';
+        document.getElementById('table-convex-wrapper').classList.remove('hidden');
+        document.getElementById('table-concave-wrapper').classList.add('hidden');
+      } else {
+        btnConcave.className = 'py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-sky-600 text-white shadow-lg shadow-sky-600/30 border border-sky-400';
+        btnConvex.className = 'py-2.5 px-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700';
+        document.getElementById('fig-badge').textContent = 'Fig. 9.17 (a)–(b)';
+        document.getElementById('table-heading').textContent = 'Table 9.5: Nature, position and relative size of the image formed by a concave lens';
+        document.getElementById('table-concave-wrapper').classList.remove('hidden');
+        document.getElementById('table-convex-wrapper').classList.add('hidden');
+      }
+
+      buildProperLensMesh(type);
+      selectCase(currentCaseIndex);
+    }
+
+    function selectCase(idx) {
+      currentCaseIndex = idx;
+      const caseObj = NCERT_DATA[currentLensType][idx];
+      currentU = caseObj.u;
+
+      document.getElementById('u-slider').value = caseObj.sliderVal;
+      document.getElementById('u-readout').textContent =
+        currentU <= -500 ? 'u = ∞ (At Infinity)' : `u = ${currentU.toFixed(1)} cm`;
+
+      updateUIForCase(caseObj, idx);
+      renderCaseButtons();
+      rebuildOpticsScene();
+    }
+
+    function onSliderInput(val) {
+      const num = parseFloat(val);
+      if (num >= 41.5) {
+        currentU = -1000;
+        document.getElementById('u-readout').textContent = 'u = ∞ (At Infinity)';
+      } else {
+        currentU = -num;
+        document.getElementById('u-readout').textContent = `u = ${currentU.toFixed(1)} cm`;
+      }
+
+      // Automatically detect matching NCERT Case
+      if (currentLensType === 'convex') {
+        if (currentU <= -500) currentCaseIndex = 0;
+        else if (currentU < -20.4) currentCaseIndex = 1;
+        else if (Math.abs(currentU + 20) <= 0.4) currentCaseIndex = 2;
+        else if (currentU > -19.6 && currentU < -10.4) currentCaseIndex = 3;
+        else if (Math.abs(currentU + 10) <= 0.4) currentCaseIndex = 4;
+        else currentCaseIndex = 5;
+      } else {
+        currentCaseIndex = currentU <= -500 ? 0 : 1;
+      }
+
+      const caseObj = NCERT_DATA[currentLensType][currentCaseIndex];
+      updateUIForCase(caseObj, currentCaseIndex);
+      renderCaseButtons();
+      rebuildOpticsScene();
+    }
+
+    function updateUIForCase(caseObj, idx) {
+      document.getElementById('case-title-badge').textContent = `${caseObj.fig} • Case (${caseObj.id})`;
+      document.getElementById('info-obj-pos').textContent = caseObj.objPos;
+      document.getElementById('info-img-pos').textContent = caseObj.imgPos;
+      document.getElementById('info-img-size').textContent = caseObj.imgSize;
+      document.getElementById('info-img-nature').textContent = caseObj.imgNature;
+
+      const lensName = currentLensType === 'convex' ? 'Convex Lens' : 'Concave Lens';
+      document.getElementById('canvas-status-title').textContent =
+        `${lensName} — ${caseObj.label} (${caseObj.fig})`;
+
+      // Highlight active table row
+      NCERT_DATA.convex.forEach((_, i) => {
+        const r = document.getElementById(`row-convex-${i}`);
+        if (r) r.classList.toggle('active-row-convex', currentLensType === 'convex' && i === idx);
+      });
+      NCERT_DATA.concave.forEach((_, i) => {
+        const r = document.getElementById(`row-concave-${i}`);
+        if (r) r.classList.toggle('active-row-concave', currentLensType === 'concave' && i === idx);
+      });
+    }
+
+    // Ray & View Toggles
+    function toggleMasterRays() {
+      masterRaysOn = !masterRaysOn;
+      const btn = document.getElementById('btn-master-rays');
+      btn.textContent = masterRaysOn ? 'Rays: ON' : 'Rays: OFF';
+      btn.className = masterRaysOn
+        ? 'text-xs font-bold px-3 py-1 rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 transition shadow'
+        : 'text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 transition';
+      rebuildOpticsScene();
+    }
+
+    function updateRayVisibility() {
+      rebuildOpticsScene();
+    }
+
+    function togglePhotons() {
+      photonsOn = !photonsOn;
+      const btn = document.getElementById('btn-photons');
+      btn.textContent = photonsOn ? 'Photon Flow: ON' : 'Photon Flow: OFF';
+      btn.className = photonsOn
+        ? 'py-2 px-3 rounded-lg font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition'
+        : 'py-2 px-3 rounded-lg font-semibold bg-slate-800 text-slate-400 border border-slate-700 transition';
+    }
+
+    function toggleScreen3D() {
+      screen3DOn = !screen3DOn;
+      const btn = document.getElementById('btn-screen');
+      btn.textContent = screen3DOn ? '3D Screen: ON' : '3D Screen: OFF';
+      rebuildOpticsScene();
+    }
+
+    function setCameraView(mode) {
+      if (mode === 'front') {
+        camera.position.set(0, 0, 52);
+      } else if (mode === 'iso') {
+        camera.position.set(0, 12, 48);
+      } else if (mode === 'top') {
+        camera.position.set(0, 52, 0.1);
+      }
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    // ============================================================================
+    // 8. ANIMATION LOOP (PHOTON PULSES & 3D LABEL PROJECTION)
+    // ============================================================================
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+
+      const elapsed = clock.getElapsedTime();
+
+      // Update animated photon spheres along active ray paths
+      photonMeshes.forEach(m => (m.visible = false));
+
+      if (masterRaysOn && photonsOn && activePhotonPaths.length > 0) {
+        let meshIdx = 0;
+        activePhotonPaths.forEach((pathObj, pIndex) => {
+          const pts = pathObj.points;
+          if (pts.length < 2) return;
+
+          // Spawn 6 photons per ray path
+          const photonsPerRay = 6;
+          for (let k = 0; k < photonsPerRay; k++) {
+            if (meshIdx >= PHOTON_POOL_SIZE) break;
+            const mesh = photonMeshes[meshIdx++];
+            mesh.visible = true;
+            mesh.material.color.setHex(pathObj.colorHex);
+
+            const t = ((elapsed * 0.42 + k / photonsPerRay + pIndex * 0.13) % 1);
+            if (pts.length === 3) {
+              // Two-segment ray (incident + refracted)
+              if (t < 0.5) {
+                const localT = t * 2;
+                mesh.position.lerpVectors(pts[0], pts[1], localT);
+              } else {
+                const localT = (t - 0.5) * 2;
+                mesh.position.lerpVectors(pts[1], pts[2], localT);
+              }
+            } else {
+              mesh.position.lerpVectors(pts[0], pts[1], t);
+            }
+          }
+        });
+      }
+
+      // Project 3D coordinates to 2D screen overlay labels
+      const width = mount.clientWidth;
+      const height = mount.clientHeight;
+
+      htmlLabels.forEach(lbl => {
+        if (!lbl.visible) {
+          lbl.el.style.opacity = '0';
+          return;
+        }
+        const projected = lbl.pos.clone().project(camera);
+        if (projected.z > 1) {
+          lbl.el.style.opacity = '0';
+          return;
+        }
+        const x = (projected.x * 0.5 + 0.5) * width;
+        const y = (-projected.y * 0.5 + 0.5) * height;
+        lbl.el.style.left = `${x}px`;
+        lbl.el.style.top = `${y}px`;
+        lbl.el.style.opacity = '1';
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = mount.clientWidth / mount.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(mount.clientWidth, mount.clientHeight);
+    });
+
+    // Initialize Lab
+    buildTablesAndCaseButtons();
+    setLensType('convex');
+    animate();
+  </script>
+</body>
+</html>
